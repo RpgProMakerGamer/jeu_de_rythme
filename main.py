@@ -17,6 +17,7 @@ clock = pygame.time.Clock()
 game_paused = True
 menu_state = "main"
 main_menu_music = True
+afficher_shooting_stars = False
 fps = 60
 
 #define fonts
@@ -26,31 +27,28 @@ font = pygame.font.SysFont("arialblack", 40)
 TEXT_COL = (60, 255, 7)
 
 #load button images
-resume_img = pygame.image.load("images/button_resume.png").convert_alpha()
-options_img = pygame.image.load("images/button_options.png").convert_alpha()
-quit_img = pygame.image.load("images/button_quit.png").convert_alpha()
-video_img = pygame.image.load('images/button_video.png').convert_alpha()
-audio_img = pygame.image.load('images/button_audio.png').convert_alpha()
-keys_img = pygame.image.load('images/button_keys.png').convert_alpha()
-back_img = pygame.image.load('images/button_back.png').convert_alpha()
+resume_img = pygame.image.load("assets/textures/GUI/main menu/Jouer.png").convert_alpha()
+options_img = pygame.image.load("assets/textures/GUI/main menu/Paramètres.png").convert_alpha()
+quit_img = pygame.image.load("assets/textures/GUI/main menu/quitter.png").convert_alpha()
+audio_img = pygame.image.load('assets/textures/GUI/main menu/modifier le volume.png').convert_alpha()
+back_img = pygame.image.load('assets/textures/GUI/main menu/retour.png').convert_alpha()
 shooting_star_img = pygame.image.load('assets/textures/GUI/main menu/shooting_star.png').convert_alpha()
+lines_img = pygame.image.load('assets/textures/GUI/lines.png')
 
 #create button instances
-resume_button = button.Button(304, 125, resume_img, 1)
-options_button = button.Button(297, 250, options_img, 1)
-quit_button = button.Button(336, 375, quit_img, 1)
-video_button = button.Button(226, 75, video_img, 1)
-audio_button = button.Button(225, 200, audio_img, 1)
-keys_button = button.Button(246, 325, keys_img, 1)
-back_button = button.Button(332, 450, back_img, 1)
+resume_button = button.Button(640, 220, resume_img, 1.5)
+options_button = button.Button(640, 360, options_img, 1.5)
+quit_button = button.Button(640, 500, quit_img, 1.5)
+audio_button = button.Button(640, 310, audio_img, 1.5)
+back_button = button.Button(640, 410, back_img, 1.5)
 
 # create sprite instances
-shooting_star_sprt0 = sprite.Sprite(random.randrange(40,1280), 0, shooting_star_img, random.randrange(50,256), screen)
-shooting_star_sprt1 = sprite.Sprite(random.randrange(40,1280), 0, shooting_star_img, random.randrange(50,256), screen)
-shooting_star_sprt2 = sprite.Sprite(1280, random.randrange(700), shooting_star_img, random.randrange(50,256), screen)
-shooting_star_sprt3 = sprite.Sprite(1280, random.randrange(700), shooting_star_img, random.randrange(50,256), screen)
-# print(shooting_star_sprt0.x)
-# print(locals()[f'shooting_star_sprt{0}'].x)
+if afficher_shooting_stars == True :
+  shooting_star_sprt0 = sprite.Sprite(random.randrange(40,1280), 0, shooting_star_img, random.randrange(50,256), screen)
+  shooting_star_sprt1 = sprite.Sprite(random.randrange(40,1280), 0, shooting_star_img, random.randrange(50,256), screen)
+  shooting_star_sprt2 = sprite.Sprite(1280, random.randrange(700), shooting_star_img, random.randrange(50,256), screen)
+  shooting_star_sprt3 = sprite.Sprite(1280, random.randrange(700), shooting_star_img, random.randrange(50,256), screen)
+
 
 def draw_text(text, font, text_col, x, y):
   img = font.render(text, True, text_col)
@@ -85,12 +83,8 @@ while run:
     #check if the options menu is open
     if menu_state == "options":
       #draw the different options buttons
-      if video_button.draw(screen):
-        print("Video Settings")
       if audio_button.draw(screen):
         print("Audio Settings")
-      if keys_button.draw(screen):
-        print("Change Key Bindings")
       if back_button.draw(screen):
         menu_state = "main"
   else:
@@ -98,16 +92,17 @@ while run:
 
   # draw shooting stars
   # /!\ problème avec l'opacité /!\
-  for i in range(4):
-    if locals()[f'shooting_star_sprt{i}'].x>-250 or locals()[f'shooting_star_sprt{i}'].y<720:
-      locals()[f"shooting_star_sprt{i}"] = sprite.Sprite(locals()[f'shooting_star_sprt{i}'].x-1.5, locals()[f'shooting_star_sprt{i}'].y+1, shooting_star_img, 255, screen)
-    else :
-      if i < 2:
-        locals()[f"shooting_star_sprt{i}"] = sprite.Sprite(random.randrange(40,1280), 0, shooting_star_img, random.randrange(50,256), screen)
-        print(locals()[f"shooting_star_sprt{i}"].opacity)
+  if afficher_shooting_stars == True :
+    for i in range(4):
+      if locals()[f'shooting_star_sprt{i}'].x>-250 or locals()[f'shooting_star_sprt{i}'].y<720:
+        locals()[f"shooting_star_sprt{i}"] = sprite.Sprite(locals()[f'shooting_star_sprt{i}'].x-1.5, locals()[f'shooting_star_sprt{i}'].y+1, shooting_star_img, 255, screen)
       else :
-        locals()[f"shooting_star_sprt{i}"] = sprite.Sprite(1280, random.randrange(700), shooting_star_img, random.randrange(50,256), screen)
-        print(locals()[f"shooting_star_sprt{i}"].opacity)
+        if i < 2:
+          locals()[f"shooting_star_sprt{i}"] = sprite.Sprite(random.randrange(40,1280), 0, shooting_star_img, random.randrange(50,256), screen)
+          print(locals()[f"shooting_star_sprt{i}"].opacity)
+        else :
+          locals()[f"shooting_star_sprt{i}"] = sprite.Sprite(1280, random.randrange(700), shooting_star_img, random.randrange(50,256), screen)
+          print(locals()[f"shooting_star_sprt{i}"].opacity)
 
   #event handler
   for event in pygame.event.get():
@@ -117,6 +112,13 @@ while run:
     if event.type == pygame.QUIT:
       run = False
 
+  # affichage des raies/lignes
+  # lines_sprt = sprite.Sprite(0,0,lines_img,255,screen)
+  line_surface = pygame.Surface((1280, 720), pygame.SRCALPHA)
+  for y in range(1,720,2):
+    pygame.draw.line(line_surface, (0,0,0,125), (0,y), (1280,y), 1)
+
+  screen.blit(line_surface,(0,0))
   pygame.display.update()
   clock.tick(fps)
 pygame.quit()
