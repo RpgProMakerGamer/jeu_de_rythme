@@ -8,7 +8,6 @@ pygame.init()
 #create game window
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
-
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Jeu de rythm")
 clock = pygame.time.Clock()
@@ -17,7 +16,7 @@ clock = pygame.time.Clock()
 game_paused = True
 menu_state = "main"
 main_menu_music = True
-afficher_shooting_stars = False
+afficher_shooting_stars = True
 fps = 60
 
 #define fonts
@@ -55,7 +54,7 @@ def draw_text(text, font, text_col, x, y):
   screen.blit(img, (x, y))
 
 
-depop=0
+
 #game loop
 run = True
 while run:
