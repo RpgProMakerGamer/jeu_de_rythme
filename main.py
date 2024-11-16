@@ -1,14 +1,17 @@
 import pygame
+from pygame.font import FontType
+
 import button
 import sprite
 import random
+from pygame_render import RenderEngine, Layer
 
 pygame.init()
 
 #create game window
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+engine = RenderEngine(SCREEN_WIDTH, SCREEN_HEIGHT)
 pygame.display.set_caption("Jeu de rythm")
 clock = pygame.time.Clock()
 
@@ -43,27 +46,29 @@ back_button = button.Button(640, 410, back_img, 1.5)
 
 # create sprite instances
 if afficher_shooting_stars == True :
-  shooting_star_sprt0 = sprite.Sprite(random.randrange(40,1280), 0, shooting_star_img, random.randrange(50,256), screen)
-  shooting_star_sprt1 = sprite.Sprite(random.randrange(40,1280), 0, shooting_star_img, random.randrange(50,256), screen)
-  shooting_star_sprt2 = sprite.Sprite(1280, random.randrange(700), shooting_star_img, random.randrange(50,256), screen)
-  shooting_star_sprt3 = sprite.Sprite(1280, random.randrange(700), shooting_star_img, random.randrange(50,256), screen)
+  shooting_star_sprt0 = sprite.Sprite(random.randrange(40,1280), 0, shooting_star_img, random.randrange(50,256), engine)
+  shooting_star_sprt1 = sprite.Sprite(random.randrange(40,1280), 0, shooting_star_img, random.randrange(50,256), engine)
+  shooting_star_sprt2 = sprite.Sprite(1280, random.randrange(700), shooting_star_img, random.randrange(50,256), engine)
+  shooting_star_sprt3 = sprite.Sprite(1280, random.randrange(700), shooting_star_img, random.randrange(50,256), engine)
 
 
-def draw_text(text, font, text_col, x, y):
-  img = font.render(text, True, text_col)
-  screen.blit(img, (x, y))
+def draw_text(text, test : FontType, text_col, x, y):
+  img = test.render(text, True, text_col)
+  engine.render(engine.surface_to_texture(img), engine.screen, (x, y))
   
 
 #game loop
 run = True
 while run:
 
-  screen.fill(( 0, 22, 1 ))
+  clock.tick(fps)
+
+  engine.screen.clear(0, 22, 1,255)
 
   # main menu music player
   if main_menu_music == True:
     main_menu_music = False
-    pygame.mixer.music.load("assets\sounds\musics\main menu.mp3") 
+    pygame.mixer.music.load("assets/sounds/musics/main_menu.mp3")
     pygame.mixer.music.set_volume(0.025)
     pygame.mixer.music.play() 
 
@@ -72,18 +77,18 @@ while run:
     #check menu state
     if menu_state == "main":
       #draw pause screen buttons
-      if resume_button.draw(screen):
+      if resume_button.draw(engine):
         game_paused = False
-      if options_button.draw(screen):
+      if options_button.draw(engine):
         menu_state = "options"
-      if quit_button.draw(screen):
+      if quit_button.draw(engine):
         run = False
     #check if the options menu is open
     if menu_state == "options":
       #draw the different options buttons
-      if audio_button.draw(screen):
+      if audio_button.draw(engine):
         print("Audio Settings")
-      if back_button.draw(screen):
+      if back_button.draw(engine):
         menu_state = "main"
   else:
     draw_text("Press SPACE to pause", font, TEXT_COL, 160, 250)
@@ -93,13 +98,13 @@ while run:
   if afficher_shooting_stars == True :
     for i in range(4):
       if locals()[f'shooting_star_sprt{i}'].x>-250 or locals()[f'shooting_star_sprt{i}'].y<720:
-        locals()[f"shooting_star_sprt{i}"] = sprite.Sprite(locals()[f'shooting_star_sprt{i}'].x-1.5, locals()[f'shooting_star_sprt{i}'].y+1, shooting_star_img, 255, screen)
+        locals()[f"shooting_star_sprt{i}"] = sprite.Sprite(locals()[f'shooting_star_sprt{i}'].x - 1.5, locals()[f'shooting_star_sprt{i}'].y + 1, shooting_star_img, 255, engine)
       else :
         if i < 2:
-          locals()[f"shooting_star_sprt{i}"] = sprite.Sprite(random.randrange(40,1280), 0, shooting_star_img, random.randrange(50,256), screen)
+          locals()[f"shooting_star_sprt{i}"] = sprite.Sprite(random.randrange(40,1280), 0, shooting_star_img, random.randrange(50,256), engine)
           print(locals()[f"shooting_star_sprt{i}"].opacity)
         else :
-          locals()[f"shooting_star_sprt{i}"] = sprite.Sprite(1280, random.randrange(700), shooting_star_img, random.randrange(50,256), screen)
+          locals()[f"shooting_star_sprt{i}"] = sprite.Sprite(1280, random.randrange(700), shooting_star_img, random.randrange(50,256), engine)
           print(locals()[f"shooting_star_sprt{i}"].opacity)
 
   #event handler
@@ -114,9 +119,7 @@ while run:
   # lines_sprt = sprite.Sprite(0,0,lines_img,255,screen)
   line_surface = pygame.Surface((1280, 720), pygame.SRCALPHA)
   for y in range(1,720,2):
-    pygame.draw.line(line_surface, (0,0,0,125), (0,y), (1280,y), 1)
+    engine.render_thick_line(engine.screen, (0, 0, 0,125), (0,y), (1280,y), 1)
 
-  screen.blit(line_surface,(0,0))
-  pygame.display.update()
-  clock.tick(fps)
+  pygame.display.flip()
 pygame.quit()
