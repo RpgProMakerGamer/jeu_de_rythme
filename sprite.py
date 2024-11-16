@@ -2,7 +2,6 @@ import pygame
 
 #button class
 class Sprite():
-    
     def __init__(self, x, y, image, opacity, screen):
         # width = image.get_width()
         # height = image.get_height()

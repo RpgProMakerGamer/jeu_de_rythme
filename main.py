@@ -16,7 +16,7 @@ clock = pygame.time.Clock()
 game_paused = True
 menu_state = "main"
 main_menu_music = True
-afficher_shooting_stars = True
+afficher_shooting_stars = False
 fps = 60
 
 #define fonts
@@ -52,8 +52,7 @@ if afficher_shooting_stars == True :
 def draw_text(text, font, text_col, x, y):
   img = font.render(text, True, text_col)
   screen.blit(img, (x, y))
-
-
+  
 
 #game loop
 run = True
