@@ -1,21 +1,16 @@
-import pygame
+from pygame_render import Layer,RenderEngine
 
 #button class
-class Sprite():
-    def __init__(self, x, y, image, opacity, screen):
-        # width = image.get_width()
-        # height = image.get_height()
-        # self.image = pygame.transform.scale(image, (int(width * scale), int(height * scale)))
-        # self.image.set_alpha(opacity) 
-        # self.rect = self.image.get_rect()
-        # self.rect.topleft = (x, y)
+class Sprite:
+    def __init__(self, x, y, image, opacity, screen : RenderEngine):
         self.x = x
         self.y = y
         self.opacity = opacity
-        temp = pygame.Surface((image.get_width(), image.get_height())).convert()
-        temp.blit(screen, (-self.x, -self.y))
-        temp.blit(image, (0, 0))
-        temp.set_alpha(opacity)        
+        temp = Layer(image.get_width(), image.get_height())
+        screen.render(image, temp,(-self.x, -self.y))
+        screen.render(image, temp, (0, 0))
+        #print("show")
+        #Layer.(opacity)
         screen.blit(temp, (self.x,self.y))
 
 
