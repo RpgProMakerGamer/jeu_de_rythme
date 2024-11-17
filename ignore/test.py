@@ -23,7 +23,7 @@ num_sprites = 1
 positions = [(50,50) for _ in range(num_sprites)]
 
 # Load shader
-shader_glow = engine.load_shader_from_path('vertex.glsl', 'fragment_glow.glsl')
+shader_glow = engine.load_shader_from_path('vertex.glsl', 'line.glsl')
 surface = pygame.SurfaceType((width, height))
 surface.fill((64, 200, 64))
 background =engine.surface_to_texture(surface)
@@ -41,12 +41,11 @@ while running:
     # Update the time
     total_time += clock.get_time()
 
-    rand = randrange(200)
-
+    rand = randrange(200)/10
     # Send time uniform to glow shader
-    shader_glow['time'] = total_time
+#    shader_glow['time'] = total_time
     shader_glow['rand'] = rand
-
+    #print(max(0.0, (rand-1) * -1))
 
     engine.render(background, engine.screen, shader=shader_glow)
     # Render texture to screen

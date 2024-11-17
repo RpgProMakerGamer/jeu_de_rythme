@@ -1,10 +1,9 @@
 #version 330 core
 
 in vec2 fragmentTexCoord;
-uniform sampler2D imageTexture;
+//uniform sampler2D imageTexture;
 
 //uniform float time;
-uniform float rand;
 
 out vec4 color;
 
@@ -13,11 +12,10 @@ out vec4 color;
 
 void main()
 {
-    color = texture(imageTexture, fragmentTexCoord);
+    color = vec4(0.0);
 
 // Precompute intensity, clamp to avoid branching
-    float intensity = max(0.0, (rand-1) * -1);
 // Subtract intensity-scaled color
-    color -= intensity * vec4(1, 1, 1, 0);
+    color.a = mod(gl_FragCoord.y, 2) * 0.5 ;
 
 }

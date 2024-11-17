@@ -1,3 +1,5 @@
+from time import time
+
 import pygame
 from pygame.font import FontType
 
@@ -27,6 +29,12 @@ font = pygame.font.SysFont("arialblack", 40)
 
 #define colours
 TEXT_COL = (60, 255, 7)
+
+#define Texture
+line_texture = engine.surface_to_texture(pygame.Surface((1280, 720), pygame.SRCALPHA))
+
+#define shader
+shader_line = engine.load_shader_from_path('shader/vertex.glsl', 'shader/line.glsl')
 
 #load button images
 resume_img = pygame.image.load("assets/textures/GUI/main menu/Jouer.png").convert_alpha()
@@ -61,7 +69,10 @@ def draw_text(text, test : FontType, text_col, x, y):
 run = True
 while run:
 
+
+
   clock.tick(fps)
+  t0 = time()
 
   engine.screen.clear(0, 22, 1,255)
 
@@ -117,9 +128,15 @@ while run:
 
   # affichage des raies/lignes
   # lines_sprt = sprite.Sprite(0,0,lines_img,255,screen)
-  line_surface = pygame.Surface((1280, 720), pygame.SRCALPHA)
-  for y in range(1,720,2):
-    engine.render_thick_line(engine.screen, (0, 0, 0,125), (0,y), (1280,y), 1)
+
+  engine.render(line_texture,engine.screen,shader=shader_line)
 
   pygame.display.flip()
+
+  # Display mspt
+  t = time()
+  mspt = (t - t0) * 1000
+
+  pygame.display.set_caption(
+    f'Rendering 1 sprites at {mspt:.3f} ms per tick!')
 pygame.quit()
