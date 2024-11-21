@@ -6,7 +6,7 @@ from pygame.font import FontType
 import button
 import sprite
 import random
-from pygame_render import RenderEngine, Layer
+from pygame_render import RenderEngine
 
 pygame.init()
 
@@ -23,18 +23,23 @@ menu_state = "main"
 main_menu_music = True
 afficher_shooting_stars = False
 fps = 60
+start_time = (time() - int(time())) * 1000
 
 #define fonts
 font = pygame.font.SysFont("arialblack", 40)
 
 #define colours
-TEXT_COL = (60, 255, 7)
+TEXT_COL = (60, 255, 7,255)
+
+#define layer
+menu_layer = engine.make_layer((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 #define Texture
-line_texture = engine.surface_to_texture(pygame.Surface((1280, 720), pygame.SRCALPHA))
+line_texture = engine.surface_to_texture(pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA))
 
 #define shader
 shader_line = engine.load_shader_from_path('shader/vertex.glsl', 'shader/line.glsl')
+shader_glitch = engine.load_shader_from_path('shader/vertex.glsl', 'shader/glitch.glsl')
 
 #load button images
 resume_img = pygame.image.load("assets/textures/GUI/main menu/Jouer.png").convert_alpha()
@@ -60,11 +65,11 @@ if afficher_shooting_stars == True :
   shooting_star_sprt3 = sprite.Sprite(1280, random.randrange(700), shooting_star_img, random.randrange(50,256), engine)
 
 
-def draw_text(text, test : FontType, text_col, x, y):
-  img = test.render(text, True, text_col)
+def draw_text(message, font : FontType, text_col:tuple[int,int,int], x, y):
+  img = font.render(message, True, text_col)
   engine.render(engine.surface_to_texture(img), engine.screen, (x, y))
   
-
+counter = 0
 #game loop
 run = True
 while run:
@@ -75,6 +80,7 @@ while run:
   t0 = time()
 
   engine.screen.clear(0, 22, 1,255)
+  menu_layer.clear(0, 22, 1,255)
 
   # main menu music player
   if main_menu_music == True:
@@ -88,19 +94,20 @@ while run:
     #check menu state
     if menu_state == "main":
       #draw pause screen buttons
-      if resume_button.draw(engine):
+      if resume_button.draw(engine,menu_layer):
         game_paused = False
-      if options_button.draw(engine):
+      if options_button.draw(engine,menu_layer):
         menu_state = "options"
-      if quit_button.draw(engine):
+      if quit_button.draw(engine,menu_layer):
         run = False
     #check if the options menu is open
     if menu_state == "options":
       #draw the different options buttons
-      if audio_button.draw(engine):
+      if audio_button.draw(engine,menu_layer):
         print("Audio Settings")
-      if back_button.draw(engine):
+      if back_button.draw(engine,menu_layer):
         menu_state = "main"
+    engine.render(menu_layer.texture, engine.screen, shader=shader_glitch)
   else:
     draw_text("Press SPACE to pause", font, TEXT_COL, 160, 250)
 
@@ -126,17 +133,26 @@ while run:
     if event.type == pygame.QUIT:
       run = False
 
+  shader_glitch['time'] = start_time
+
+  #engine.render(engine.surface_to_texture(resume_img), menu_layer, (640, 220))
+
+
+
   # affichage des raies/lignes
   # lines_sprt = sprite.Sprite(0,0,lines_img,255,screen)
-
-  engine.render(line_texture,engine.screen,shader=shader_line)
+  engine.render(line_texture, engine.screen, shader=shader_line)
 
   pygame.display.flip()
 
   # Display mspt
-  t = time()
+  t =time()
+  start_time += (t - t0)
+
   mspt = (t - t0) * 1000
 
   pygame.display.set_caption(
     f'Rendering 1 sprites at {mspt:.3f} ms per tick!')
 pygame.quit()
+
+

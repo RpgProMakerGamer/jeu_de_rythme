@@ -16,6 +16,6 @@ void main()
 
 // Precompute intensity, clamp to avoid branching
 // Subtract intensity-scaled color
-    color.a = mod(gl_FragCoord.y, 2) * 0.5 ;
+    color.a = mod(round(gl_FragCoord.y/2), 2) * 0.4 ;
 
 }

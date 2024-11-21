@@ -1,5 +1,5 @@
 import pygame
-from pygame_render import RenderEngine
+from pygame_render import RenderEngine, Layer
 
 import sprite
 
@@ -13,7 +13,7 @@ class Button():
 		self.rect.center = (x, y)
 		self.clicked = False
 
-	def draw(self, surface:RenderEngine):
+	def draw(self, surface:RenderEngine,layer : Layer = None):
 		action = False
 		#get mouse position
 		pos = pygame.mouse.get_pos()
@@ -28,8 +28,9 @@ class Button():
 
 		if pygame.mouse.get_pressed()[0] == 0:
 			self.clicked = False
-
-		#draw button on screen
-		surface.render(surface.surface_to_texture(self.image),surface.screen, (self.rect.x, self.rect.y))
+		#draw button on the layer
+		if layer is not None:
+			surface.render(surface.surface_to_texture(self.image),layer, (self.rect.x, self.rect.y))
+		else : surface.render(surface.surface_to_texture(self.image),surface.screen, (self.rect.x, self.rect.y))
 
 		return action
