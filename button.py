@@ -4,7 +4,7 @@ from pygame_render import RenderEngine, Layer
 import sprite
 
 #button class
-class Button():
+class Button:
 	def __init__(self, x, y, image, scale):
 		width = image.get_width()
 		height = image.get_height()
@@ -14,18 +14,6 @@ class Button():
 		self.clicked = False
 
 	def draw(self, surface:RenderEngine,layer : Layer = None):
-		action = False
-		#get mouse position
-		pos = pygame.mouse.get_pos()
-
-		#check mouseover and clicked conditions
-		if self.rect.collidepoint(pos):
-			#img = sprite.Sprite(self.rect.topleft[0]+20, self.rect.topleft[1]+20, self.image, 255,surface)
-			#print("hover")
-			if pygame.mouse.get_pressed()[0] == 1 and self.clicked == False:
-				self.clicked = True
-				action = True
-
 		if pygame.mouse.get_pressed()[0] == 0:
 			self.clicked = False
 		#draw button on the layer
@@ -33,4 +21,12 @@ class Button():
 			surface.render(surface.surface_to_texture(self.image),layer, (self.rect.x, self.rect.y))
 		else : surface.render(surface.surface_to_texture(self.image),surface.screen, (self.rect.x, self.rect.y))
 
-		return action
+	def is_hover(self):
+		pos = pygame.mouse.get_pos()
+		return self.rect.collidepoint(pos)
+
+	def is_clicked(self):
+		if self.is_hover() and pygame.mouse.get_pressed()[0] == 1 and self.clicked == False:
+			self.clicked = True
+			return True
+		return False

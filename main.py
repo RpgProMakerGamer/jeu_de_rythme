@@ -23,7 +23,7 @@ menu_state = "main"
 main_menu_music = True
 afficher_shooting_stars = False
 fps = 60
-start_time = (time() - int(time())) * 1000
+start_time = (time() - int(time())) * 100
 
 #define fonts
 font = pygame.font.SysFont("arialblack", 40)
@@ -35,11 +35,12 @@ TEXT_COL = (60, 255, 7,255)
 menu_layer = engine.make_layer((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 #define Texture
-line_texture = engine.surface_to_texture(pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA))
+blank_texture = engine.surface_to_texture(pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA))
 
 #define shader
 shader_line = engine.load_shader_from_path('shader/vertex.glsl', 'shader/line.glsl')
 shader_glitch = engine.load_shader_from_path('shader/vertex.glsl', 'shader/glitch.glsl')
+shader_star = engine.load_shader_from_path('shader/vertex.glsl', 'shader/star.glsl')
 
 #load button images
 resume_img = pygame.image.load("assets/textures/GUI/main menu/Jouer.png").convert_alpha()
@@ -65,15 +66,27 @@ if afficher_shooting_stars == True :
   shooting_star_sprt3 = sprite.Sprite(1280, random.randrange(700), shooting_star_img, random.randrange(50,256), engine)
 
 
-def draw_text(message, font : FontType, text_col:tuple[int,int,int], x, y):
+def draw_text(message, font : FontType, text_col:tuple[int,int,int,int], x, y):
   img = font.render(message, True, text_col)
   engine.render(engine.surface_to_texture(img), engine.screen, (x, y))
+
+def draw_main_menu():
+  resume_button.draw(engine,menu_layer)
+  options_button.draw(engine,menu_layer)
+  quit_button.draw(engine,menu_layer)
+
+def draw_options_menu():
+  audio_button.draw(engine,menu_layer)
+  back_button.draw(engine,menu_layer)
   
 counter = 0
 #game loop
 run = True
 while run:
 
+  shader_glitch['time'] = start_time
+  shader_line['time'] = pygame.time.get_ticks()
+  shader_star['time'] = pygame.time.get_ticks()
 
 
   clock.tick(fps)
@@ -93,27 +106,31 @@ while run:
   if game_paused == True:
     #check menu state
     if menu_state == "main":
+      draw_main_menu()
+
       #draw pause screen buttons
-      if resume_button.draw(engine,menu_layer):
+      if resume_button.is_clicked():
         game_paused = False
-      if options_button.draw(engine,menu_layer):
+      if options_button.is_clicked():
         menu_state = "options"
-      if quit_button.draw(engine,menu_layer):
+      if quit_button.is_clicked():
         run = False
     #check if the options menu is open
     if menu_state == "options":
+      draw_options_menu()
       #draw the different options buttons
-      if audio_button.draw(engine,menu_layer):
+      if audio_button.is_clicked():
         print("Audio Settings")
-      if back_button.draw(engine,menu_layer):
+      if back_button.is_clicked():
         menu_state = "main"
-    engine.render(menu_layer.texture, engine.screen, shader=shader_glitch)
+    #engine.render(menu_layer.texture, engine.screen, shader=shader_glitch)
   else:
+    #the Game is running
     draw_text("Press SPACE to pause", font, TEXT_COL, 160, 250)
 
   # draw shooting stars
   # /!\ problème avec l'opacité /!\
-  if afficher_shooting_stars == True :
+  if afficher_shooting_stars:
     for i in range(4):
       if locals()[f'shooting_star_sprt{i}'].x>-250 or locals()[f'shooting_star_sprt{i}'].y<720:
         locals()[f"shooting_star_sprt{i}"] = sprite.Sprite(locals()[f'shooting_star_sprt{i}'].x - 1.5, locals()[f'shooting_star_sprt{i}'].y + 1, shooting_star_img, 255, engine)
@@ -133,15 +150,16 @@ while run:
     if event.type == pygame.QUIT:
       run = False
 
-  shader_glitch['time'] = start_time
+
 
   #engine.render(engine.surface_to_texture(resume_img), menu_layer, (640, 220))
-
+  engine.render(blank_texture, engine.screen, shader=shader_star)
+  engine.render(menu_layer.texture, engine.screen, shader=shader_glitch)
 
 
   # affichage des raies/lignes
   # lines_sprt = sprite.Sprite(0,0,lines_img,255,screen)
-  engine.render(line_texture, engine.screen, shader=shader_line)
+  engine.render(blank_texture, engine.screen, shader=shader_line)
 
   pygame.display.flip()
 

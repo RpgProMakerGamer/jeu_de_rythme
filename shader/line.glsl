@@ -9,6 +9,9 @@ out vec4 color;
 
 //const float SCALE_GLOW=.2f;
 //const float SCALE_TIME=.05f;
+uniform float time;
+
+const float speed = 0.02;
 
 void main()
 {
@@ -16,6 +19,7 @@ void main()
 
 // Precompute intensity, clamp to avoid branching
 // Subtract intensity-scaled color
-    color.a = mod(round(gl_FragCoord.y/2), 2) * 0.4 ;
+    float add = time*speed;
+    color.a = mod(round((gl_FragCoord.y+add+2)/2), 2) * 0.4 ;
 
 }

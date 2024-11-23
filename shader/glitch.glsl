@@ -6,15 +6,15 @@ out vec4 color;
 
 
 uniform sampler2D imageTexture;
-uniform float shake_power = 0.01;
+const float shake_power = 0.008;
 
-uniform float shake_rate  = 0.2;
+const float shake_rate  = 0.1;
 
-uniform float shake_speed = 5.0;
+const float shake_speed = 15.0;
 
-uniform float shake_block_size = 40.5;
+const float shake_block_size = 40.5;
 
-uniform float shake_color_rate  = 0.01;
+const float shake_color_rate  = 0.01;
 
 uniform float time;
 
@@ -49,14 +49,6 @@ void main( )
 	,	textureLod( imageTexture, fixed_uv + vec2( -shake_color_rate, 0.0 ), 0.0 ).b
 	,	enable_shift
 	);
-	//pixel_color = vec4(fragmentTexCoord.x) ;
-	if( pixel_color.r > .1 && pixel_color.g > .1 && pixel_color.b > .1 )
-	{
-		color = vec4( 0.0 );
-	}
-	else
-	{
-		color = pixel_color;
-	}
-
+	pixel_color *=  pixel_color.r < 0.008 ? 0.0 : 1.0;
+	color = pixel_color;
 }

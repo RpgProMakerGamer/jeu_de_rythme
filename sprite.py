@@ -11,7 +11,7 @@ class Sprite:
         screen.render(image, temp, (0, 0))
         #print("show")
         #Layer.(opacity)
-        screen.blit(temp, (self.x,self.y))
+
 
 
 	
