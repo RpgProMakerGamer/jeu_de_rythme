@@ -18,8 +18,6 @@ class Button:
     self.clicked = False
 
  def draw(self, surface:RenderEngine,layer : Layer = None):
-    if pygame.mouse.get_pressed()[0] == 0:
-      Button.can_click = True
     #draw button on the layer
     if layer is not None:
       surface.render(surface.surface_to_texture(self.image),layer, (self.rect.x, self.rect.y))

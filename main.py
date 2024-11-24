@@ -1,7 +1,11 @@
+from math import atan2, degrees
 from time import time, sleep
 
 import pygame
+from pygame import Vector2
 from pygame.font import FontType
+
+from note import Note,Animation
 
 import button
 import sprite
@@ -19,13 +23,15 @@ pygame.mouse.set_cursor((8,16), (0, 0), curs, mask)
 pygame.display.set_caption("Jeu de rythm")
 clock = pygame.time.Clock()
 
-#game variables
+#global game variables
 game_paused = True
 menu_state = "main"
 main_menu_music = False
 afficher_shooting_stars = False
 fps = 60
 start_time = (time() - int(time())) * 100
+rotation = 0
+current_score = 0
 
 #define fonts
 font = pygame.font.Font("assets/textures/fonts/Chomsky.otf", 32)
@@ -38,11 +44,14 @@ menu_layer = engine.make_layer((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 #define Texture
 blank_texture = engine.surface_to_texture(pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA))
+perso = engine.load_texture("assets/textures/game/perso.png")
+note = engine.load_texture("assets/textures/game/note.png")
 
 #define shader
 shader_line = engine.load_shader_from_path('shader/vertex.glsl', 'shader/line.glsl')
 shader_glitch = engine.load_shader_from_path('shader/vertex.glsl', 'shader/glitch.glsl')
 shader_star = engine.load_shader_from_path('shader/vertex.glsl', 'shader/star.glsl')
+shader_particle = engine.load_shader_from_path('shader/vertex.glsl', 'shader/particle.glsl')
 
 #load button images
 resume_img = pygame.image.load("assets/textures/GUI/main menu/Jouer.png").convert_alpha()
@@ -53,6 +62,12 @@ back_img = pygame.image.load('assets/textures/GUI/main menu/retour.png').convert
 shooting_star_img = pygame.image.load('assets/textures/GUI/main menu/shooting_star.png').convert_alpha()
 lines_img = pygame.image.load('assets/textures/GUI/lines.png')
 
+#define note object
+note1 = Note(note, 100, 100, (255, 255, 255, 255))
+
+#load animation
+slash = Animation(engine.load_texture("assets/textures/game/slash.png"),90,90,10,6,loop=False,scale=3)
+slash.current_frame = 5
 #generated text Surface
 fullScreen_img = font.render("Fullscreen", True, TEXT_COL)
 fullScreen_img = pygame.transform.scale(fullScreen_img, (int(fullScreen_img.get_width() * 1.6),
@@ -90,6 +105,17 @@ def draw_options_menu():
   full_button.draw(engine,menu_layer)
   back_button.draw(engine,menu_layer)
 
+def draw_game():
+  draw_text("Press SPACE to pause", font, TEXT_COL, SCREEN_WIDTH/55, SCREEN_HEIGHT/55)
+  draw_text("Score : "+str(current_score), font, TEXT_COL, SCREEN_WIDTH /1.15, SCREEN_HEIGHT / 55)
+  engine.render(perso, engine.screen, (SCREEN_WIDTH/2-perso.width/2*2, SCREEN_HEIGHT/2-perso.height/2*2),scale=2,
+                angle=rotation)
+  note1.draw(engine, engine.screen, shader=shader_particle)
+  note1.set_pos(note1.x+1, note1.y+1)
+  slash.draw(engine, engine.screen,rotation=rotation)
+
+
+
 def update_layer_size():
   global menu_layer
   menu_layer = engine.make_layer((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -105,6 +131,16 @@ while run:
       pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.DOUBLEBUF | pygame.OPENGL)
     else:
       pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.DOUBLEBUF | pygame.OPENGL | pygame.FULLSCREEN)
+
+
+  #player rotaion
+  mousex,mousey = pygame.mouse.get_pos()
+  rotation = degrees(-atan2(SCREEN_WIDTH/2-mousex, SCREEN_HEIGHT/2-mousey))
+
+  if pygame.mouse.get_pressed()[0] == 0:
+    button.Button.can_click = True
+
+  #update shader variables
   shader_glitch['time'] = start_time
   shader_line['time'] = pygame.time.get_ticks()
   shader_star['time'] = pygame.time.get_ticks()
@@ -126,8 +162,9 @@ while run:
     pygame.mixer.music.play()
 
   engine.render(blank_texture, engine.screen, shader=shader_star)
+
   #check if game is paused
-  if game_paused == True:
+  if game_paused:
     #check menu state
     if menu_state == "main":
       draw_main_menu()
@@ -150,12 +187,20 @@ while run:
       if full_button.is_clicked():
         #toggle fullscreen
         change_fullscreen = True
-        print("click")
         #engine.render(engine.surface_to_texture(fullScreen_img), menu_layer, (640, 220))
     #engine.render(menu_layer.texture, engine.screen, shader=shader_glitch)
   else:
     #the Game is running
-    draw_text("Press SPACE to pause", font, TEXT_COL, 160, 250)
+    draw_game()
+    if pygame.mouse.get_pressed()[0] and button.Button.can_click :
+      button.Button.can_click = False
+      current_score += 1
+      slash.rotation = rotation
+      coord = Vector2(0, -48).rotate(rotation)
+      slash.set_pos(SCREEN_WIDTH/2+coord.x, SCREEN_HEIGHT/2+coord.y)
+      slash.start()
+
+
 
   # draw shooting stars
   # /!\ problème avec l'opacité /!\
@@ -207,5 +252,3 @@ while run:
   pygame.display.set_caption(
     f'Rendering 1 sprites at {mspt:.3f} ms per tick!')
 pygame.quit()
-
-
