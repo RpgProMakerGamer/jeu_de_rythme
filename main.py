@@ -1,4 +1,4 @@
-from time import time
+from time import time, sleep
 
 import pygame
 from pygame.font import FontType
@@ -13,20 +13,22 @@ pygame.init()
 #create game window
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
-engine = RenderEngine(SCREEN_WIDTH, SCREEN_HEIGHT)
+engine = RenderEngine(SCREEN_WIDTH, SCREEN_HEIGHT,resizable=False)
+curs, mask = pygame.cursors.compile(pygame.cursors.textmarker_strings, 'X', 'o')
+pygame.mouse.set_cursor((8,16), (0, 0), curs, mask)
 pygame.display.set_caption("Jeu de rythm")
 clock = pygame.time.Clock()
 
 #game variables
 game_paused = True
 menu_state = "main"
-main_menu_music = True
+main_menu_music = False
 afficher_shooting_stars = False
 fps = 60
 start_time = (time() - int(time())) * 100
 
 #define fonts
-font = pygame.font.SysFont("arialblack", 40)
+font = pygame.font.Font("assets/textures/fonts/Chomsky.otf", 32)
 
 #define colours
 TEXT_COL = (60, 255, 7,255)
@@ -51,12 +53,20 @@ back_img = pygame.image.load('assets/textures/GUI/main menu/retour.png').convert
 shooting_star_img = pygame.image.load('assets/textures/GUI/main menu/shooting_star.png').convert_alpha()
 lines_img = pygame.image.load('assets/textures/GUI/lines.png')
 
+#generated text Surface
+fullScreen_img = font.render("Fullscreen", True, TEXT_COL)
+fullScreen_img = pygame.transform.scale(fullScreen_img, (int(fullScreen_img.get_width() * 1.6),
+                                                       fullScreen_img.get_height()))
+
 #create button instances
-resume_button = button.Button(640, 220, resume_img, 1.5)
-options_button = button.Button(640, 360, options_img, 1.5)
-quit_button = button.Button(640, 500, quit_img, 1.5)
-audio_button = button.Button(640, 310, audio_img, 1.5)
-back_button = button.Button(640, 410, back_img, 1.5)
+resume_button = button.Button(SCREEN_WIDTH/2, SCREEN_HEIGHT/3.2, resume_img, 1.5)
+options_button = button.Button(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, options_img, 1.5)
+quit_button = button.Button(SCREEN_WIDTH/2, SCREEN_HEIGHT/1.42, quit_img, 1.5)
+audio_button = button.Button(SCREEN_WIDTH/2, SCREEN_HEIGHT/3.2, audio_img, 1.5)
+full_button = button.Button(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, fullScreen_img, 1.5)
+back_button = button.Button(SCREEN_WIDTH/2, SCREEN_HEIGHT/1.42, back_img, 1.5)
+
+
 
 # create sprite instances
 if afficher_shooting_stars == True :
@@ -77,13 +87,24 @@ def draw_main_menu():
 
 def draw_options_menu():
   audio_button.draw(engine,menu_layer)
+  full_button.draw(engine,menu_layer)
   back_button.draw(engine,menu_layer)
-  
+
+def update_layer_size():
+  global menu_layer
+  menu_layer = engine.make_layer((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+change_fullscreen = False
 counter = 0
 #game loop
 run = True
 while run:
-
+  if change_fullscreen :
+    change_fullscreen = False
+    if pygame.display.is_fullscreen():
+      pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.DOUBLEBUF | pygame.OPENGL)
+    else:
+      pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.DOUBLEBUF | pygame.OPENGL | pygame.FULLSCREEN)
   shader_glitch['time'] = start_time
   shader_line['time'] = pygame.time.get_ticks()
   shader_star['time'] = pygame.time.get_ticks()
@@ -93,15 +114,18 @@ while run:
   t0 = time()
 
   engine.screen.clear(0, 22, 1,255)
-  menu_layer.clear(0, 22, 1,255)
+  menu_layer.clear(0, 22, 1,0)
+
+
 
   # main menu music player
   if main_menu_music == True:
     main_menu_music = False
     pygame.mixer.music.load("assets/sounds/musics/main_menu.mp3")
     pygame.mixer.music.set_volume(0.025)
-    pygame.mixer.music.play() 
+    pygame.mixer.music.play()
 
+  engine.render(blank_texture, engine.screen, shader=shader_star)
   #check if game is paused
   if game_paused == True:
     #check menu state
@@ -123,6 +147,11 @@ while run:
         print("Audio Settings")
       if back_button.is_clicked():
         menu_state = "main"
+      if full_button.is_clicked():
+        #toggle fullscreen
+        change_fullscreen = True
+        print("click")
+        #engine.render(engine.surface_to_texture(fullScreen_img), menu_layer, (640, 220))
     #engine.render(menu_layer.texture, engine.screen, shader=shader_glitch)
   else:
     #the Game is running
@@ -149,11 +178,17 @@ while run:
         game_paused = True
     if event.type == pygame.QUIT:
       run = False
+    if event.type == pygame.VIDEORESIZE:
+      SCREEN_WIDTH, SCREEN_HEIGHT = pygame.display.get_window_size()
+      update_layer_size()
+      print("resize : ",SCREEN_WIDTH, SCREEN_HEIGHT)
+      print("resize1 : ",menu_layer.size)
+      print("resize2 : ", engine.screen.size)
 
-
+  #print("resize : ", )
 
   #engine.render(engine.surface_to_texture(resume_img), menu_layer, (640, 220))
-  engine.render(blank_texture, engine.screen, shader=shader_star)
+
   engine.render(menu_layer.texture, engine.screen, shader=shader_glitch)
 
 

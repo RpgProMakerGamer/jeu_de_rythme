@@ -1,6 +1,6 @@
 #version 330 core
 
-in vec4 fragmentColor;
+in vec3 fragmentColor;
 in vec2 fragmentTexCoord;
 out vec4 color;
 
@@ -38,7 +38,7 @@ void main( )
 		) - 0.5
 	) * shake_power * enable_shift;
 
-	vec4 pixel_color = textureLod( imageTexture, fixed_uv, 0.0 );
+	vec4 pixel_color = textureLod( imageTexture, fixed_uv, 1.0 );
 	pixel_color.r = mix(
 		pixel_color.r
 	,	textureLod( imageTexture, fixed_uv + vec2( shake_color_rate, 0.0 ), 0.0 ).r
@@ -49,6 +49,6 @@ void main( )
 	,	textureLod( imageTexture, fixed_uv + vec2( -shake_color_rate, 0.0 ), 0.0 ).b
 	,	enable_shift
 	);
-	pixel_color *=  pixel_color.r < 0.008 ? 0.0 : 1.0;
+	pixel_color.a *= 5;
 	color = pixel_color;
 }

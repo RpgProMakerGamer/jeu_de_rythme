@@ -20,6 +20,6 @@ void main()
 // Precompute intensity, clamp to avoid branching
 // Subtract intensity-scaled color
     float add = time*speed;
-    color.a = mod(round((gl_FragCoord.y+add+2)/2), 2) * 0.4 ;
+    color.a = mod(round((gl_FragCoord.y+add+2)/4), 2) * 0.4 ;
 
 }
