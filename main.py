@@ -1,11 +1,11 @@
 from math import atan2, degrees
-from time import time, sleep
+from time import time
 
 import pygame
 from pygame import Vector2
 from pygame.font import FontType
 
-from note import Note,Animation
+from note import Note,Animation,init
 
 import button
 import sprite
@@ -17,6 +17,7 @@ pygame.init()
 #create game window
 SCREEN_WIDTH = 1280
 SCREEN_HEIGHT = 720
+CENTER = Vector2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2)
 engine = RenderEngine(SCREEN_WIDTH, SCREEN_HEIGHT,resizable=False)
 curs, mask = pygame.cursors.compile(pygame.cursors.textmarker_strings, 'X', 'o')
 pygame.mouse.set_cursor((8,16), (0, 0), curs, mask)
@@ -33,6 +34,9 @@ start_time = (time() - int(time())) * 100
 rotation = 0
 current_score = 0
 
+#load other module
+init(fps,(CENTER.x,CENTER.y))
+
 #define fonts
 font = pygame.font.Font("assets/textures/fonts/Chomsky.otf", 32)
 
@@ -41,6 +45,8 @@ TEXT_COL = (60, 255, 7,255)
 
 #define layer
 menu_layer = engine.make_layer((SCREEN_WIDTH, SCREEN_HEIGHT))
+note_layer = engine.make_layer((SCREEN_WIDTH, SCREEN_HEIGHT))
+note_layer2 = engine.make_layer((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 #define Texture
 blank_texture = engine.surface_to_texture(pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA))
@@ -52,6 +58,8 @@ shader_line = engine.load_shader_from_path('shader/vertex.glsl', 'shader/line.gl
 shader_glitch = engine.load_shader_from_path('shader/vertex.glsl', 'shader/glitch.glsl')
 shader_star = engine.load_shader_from_path('shader/vertex.glsl', 'shader/star.glsl')
 shader_particle = engine.load_shader_from_path('shader/vertex.glsl', 'shader/particle.glsl')
+shader_blend = engine.load_shader_from_path('shader/vertex.glsl', 'shader/blend.glsl')
+clear_black = engine.load_shader_from_path('shader/vertex.glsl', 'shader/clear_black.glsl')
 
 #load button images
 resume_img = pygame.image.load("assets/textures/GUI/main menu/Jouer.png").convert_alpha()
@@ -63,33 +71,37 @@ shooting_star_img = pygame.image.load('assets/textures/GUI/main menu/shooting_st
 lines_img = pygame.image.load('assets/textures/GUI/lines.png')
 
 #define note object
-note1 = Note(note, 100, 100, (255, 255, 255, 255))
+Note(note, 100, 100, (0, 255, 0))
 
 #load animation
-slash = Animation(engine.load_texture("assets/textures/game/slash.png"),90,90,10,6,loop=False,scale=3)
-slash.current_frame = 5
+slash = engine.load_texture("assets/textures/game/slash.png")
+
 #generated text Surface
 fullScreen_img = font.render("Fullscreen", True, TEXT_COL)
 fullScreen_img = pygame.transform.scale(fullScreen_img, (int(fullScreen_img.get_width() * 1.6),
                                                        fullScreen_img.get_height()))
 
 #create button instances
-resume_button = button.Button(SCREEN_WIDTH/2, SCREEN_HEIGHT/3.2, resume_img, 1.5)
-options_button = button.Button(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, options_img, 1.5)
-quit_button = button.Button(SCREEN_WIDTH/2, SCREEN_HEIGHT/1.42, quit_img, 1.5)
-audio_button = button.Button(SCREEN_WIDTH/2, SCREEN_HEIGHT/3.2, audio_img, 1.5)
-full_button = button.Button(SCREEN_WIDTH/2, SCREEN_HEIGHT/2, fullScreen_img, 1.5)
-back_button = button.Button(SCREEN_WIDTH/2, SCREEN_HEIGHT/1.42, back_img, 1.5)
+resume_button = button.Button(CENTER.x, SCREEN_HEIGHT/3.2, resume_img, 1.5)
+options_button = button.Button(CENTER.x, CENTER.y, options_img, 1.5)
+quit_button = button.Button(CENTER.x, SCREEN_HEIGHT/1.42, quit_img, 1.5)
+audio_button = button.Button(CENTER.x, SCREEN_HEIGHT/3.2, audio_img, 1.5)
+full_button = button.Button(CENTER.x, CENTER.y, fullScreen_img, 1.5)
+back_button = button.Button(CENTER.x, SCREEN_HEIGHT/1.42, back_img, 1.5)
 
 
 
 # create sprite instances
-if afficher_shooting_stars == True :
+if afficher_shooting_stars:
   shooting_star_sprt0 = sprite.Sprite(random.randrange(40,1280), 0, shooting_star_img, random.randrange(50,256), engine)
   shooting_star_sprt1 = sprite.Sprite(random.randrange(40,1280), 0, shooting_star_img, random.randrange(50,256), engine)
   shooting_star_sprt2 = sprite.Sprite(1280, random.randrange(700), shooting_star_img, random.randrange(50,256), engine)
   shooting_star_sprt3 = sprite.Sprite(1280, random.randrange(700), shooting_star_img, random.randrange(50,256), engine)
 
+
+def random_color() -> tuple[int,int,int]:
+  levels = range(128, 256, 32)
+  return tuple(random.choice(levels) for _ in range(3))
 
 def draw_text(message, font : FontType, text_col:tuple[int,int,int,int], x, y):
   img = font.render(message, True, text_col)
@@ -106,13 +118,22 @@ def draw_options_menu():
   back_button.draw(engine,menu_layer)
 
 def draw_game():
+  global note_layer
   draw_text("Press SPACE to pause", font, TEXT_COL, SCREEN_WIDTH/55, SCREEN_HEIGHT/55)
   draw_text("Score : "+str(current_score), font, TEXT_COL, SCREEN_WIDTH /1.15, SCREEN_HEIGHT / 55)
-  engine.render(perso, engine.screen, (SCREEN_WIDTH/2-perso.width/2*2, SCREEN_HEIGHT/2-perso.height/2*2),scale=2,
+  engine.render(perso, engine.screen, (CENTER.x-perso.width/2*2, CENTER.y-perso.height/2*2),scale=2,
                 angle=rotation)
-  note1.draw(engine, engine.screen, shader=shader_particle)
-  note1.set_pos(note1.x+1, note1.y+1)
-  slash.draw(engine, engine.screen,rotation=rotation)
+  Note.draw_all(engine, note_layer, shader=shader_particle)
+  engine.render(note_layer.texture, note_layer2, shader=shader_blend)
+  engine.render(note_layer2.texture, note_layer)
+  note_layer2.clear(0, 0, 0, 0)
+  engine.render(note_layer.texture, engine.screen, shader=clear_black)
+  Note.draw_all(engine, engine.screen, shader=shader_particle)
+  Note.move_to_all( 3)
+  for note1 in Note.list_notes:
+    if note1.get_pos().distance_to(Vector2(CENTER.x, CENTER.y)) < 3:
+      note1.remove()
+  Animation.draw_all(engine, engine.screen)
 
 
 
@@ -120,11 +141,15 @@ def update_layer_size():
   global menu_layer
   menu_layer = engine.make_layer((SCREEN_WIDTH, SCREEN_HEIGHT))
 
+note_layer.clear(0, 0, 0, 0)
+note_layer2.clear(0, 0, 0, 0)
+
 change_fullscreen = False
 counter = 0
 #game loop
 run = True
 while run:
+
   if change_fullscreen :
     change_fullscreen = False
     if pygame.display.is_fullscreen():
@@ -135,7 +160,7 @@ while run:
 
   #player rotaion
   mousex,mousey = pygame.mouse.get_pos()
-  rotation = degrees(-atan2(SCREEN_WIDTH/2-mousex, SCREEN_HEIGHT/2-mousey))
+  rotation = degrees(-atan2(CENTER.x-mousex, CENTER.y-mousey))
 
   if pygame.mouse.get_pressed()[0] == 0:
     button.Button.can_click = True
@@ -155,13 +180,16 @@ while run:
 
 
   # main menu music player
-  if main_menu_music == True:
+  if main_menu_music:
     main_menu_music = False
     pygame.mixer.music.load("assets/sounds/musics/main_menu.mp3")
     pygame.mixer.music.set_volume(0.025)
     pygame.mixer.music.play()
 
+  #background
   engine.render(blank_texture, engine.screen, shader=shader_star)
+
+
 
   #check if game is paused
   if game_paused:
@@ -191,14 +219,20 @@ while run:
     #engine.render(menu_layer.texture, engine.screen, shader=shader_glitch)
   else:
     #the Game is running
+
     draw_game()
     if pygame.mouse.get_pressed()[0] and button.Button.can_click :
       button.Button.can_click = False
       current_score += 1
-      slash.rotation = rotation
-      coord = Vector2(0, -48).rotate(rotation)
-      slash.set_pos(SCREEN_WIDTH/2+coord.x, SCREEN_HEIGHT/2+coord.y)
-      slash.start()
+      coord = Vector2(0, -65).rotate(rotation)
+      Animation(slash, CENTER.x+coord.x, CENTER.y+coord.y,
+                15, 6, loop = False, scale = 3,rotation=rotation)
+
+    if counter % 100 == 0:
+      rot = random.random() * 360
+      vec = Vector2(0, -1000).rotate(rot)
+      color = random_color()
+      Note(note, vec.x + SCREEN_WIDTH / 2, vec.y + SCREEN_HEIGHT / 2, color)
 
 
 
@@ -230,6 +264,8 @@ while run:
       print("resize1 : ",menu_layer.size)
       print("resize2 : ", engine.screen.size)
 
+
+
   #print("resize : ", )
 
   #engine.render(engine.surface_to_texture(resume_img), menu_layer, (640, 220))
@@ -251,4 +287,6 @@ while run:
 
   pygame.display.set_caption(
     f'Rendering 1 sprites at {mspt:.3f} ms per tick!')
+
+  counter += 1
 pygame.quit()

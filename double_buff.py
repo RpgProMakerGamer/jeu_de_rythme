@@ -30,6 +30,7 @@ class DoubleBuff:
             self.tex = self._layer2.texture
             self.fbo = self._layer1
 
+
     # Clear both buffers
     def clear(self, R=0, G=0, B=0, A=0):
         self._layer1.clear(R, G, B, A)

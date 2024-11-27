@@ -1,0 +1,1 @@
+#version 330 corein vec3 fragmentColor;in vec2 fragmentTexCoord;out vec4 color;uniform sampler2D imageTexture;void main() {	vec4 text = texture(imageTexture, fragmentTexCoord);    text.a = (text.r+text.g+text.b)/3;    text.a *= ceil(text.a);    color = text;}
