@@ -6,7 +6,7 @@ import pygame
 from pygame import Vector2
 from pygame.font import FontType
 
-from note import Note,Animation,init
+from note import Note,Animation,collision,init
 
 import button
 import sprite
@@ -262,10 +262,18 @@ while run:
     #check if the player clicked and spawn a slash animation
     if pygame.mouse.get_pressed()[0] and button.Button.can_click :
       button.Button.can_click = False
-      current_score += 1
+      # current_score += 1
       coord = Vector2(0, -65).rotate(rotation)
       Animation(slash, CENTER.x+coord.x, CENTER.y+coord.y,
                 15, 6, loop = False, scale = 3,rotation=rotation)
+      for note_cur in Note.list_notes:
+        note_coord = note_cur.get_pos()
+        print([note_coord[0],note_coord[1],CENTER.x+coord.x,CENTER.y+coord.y])
+        collision_result = collision(note_coord[0],note_coord[1],CENTER.x+coord.x,CENTER.y+coord.y)
+        if collision_result[0]:
+          note_cur.remove()
+          current_score += collision_result[1]
+
 
     print(counter, current_score, speed, math.ceil(100-current_score/speed))
     if counter % (math.ceil(100-current_score/speed)) == 0:

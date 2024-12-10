@@ -152,3 +152,11 @@ class Animation:
                     shader=shader,section=pygame.Rect(
         self.current_frame*self.width,0,self.width,self.textures.height),scale=self.scale,angle=self.rotation)
     self.frame_counter += 1
+
+def collision(note_x,note_y,cursor_x,cursor_y):
+    r = 15 #/!\ <=== mettre la moitié de la longueur du côté de la note (height//2)
+    d = (cursor_x - note_x)**2 + (cursor_y - note_y)**2
+    if d < r**2:
+        score = int(round(r-(d)**0.5,1)*1)
+        return (True,score)
+    return (False,None)
