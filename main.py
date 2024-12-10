@@ -268,11 +268,13 @@ while run:
                 15, 6, loop = False, scale = 3,rotation=rotation)
       for note_cur in Note.list_notes:
         note_coord = note_cur.get_pos()
-        print([note_coord[0],note_coord[1],CENTER.x+coord.x,CENTER.y+coord.y])
+        # print([note_coord[0],note_coord[1],CENTER.x+coord.x,CENTER.y+coord.y])
         collision_result = collision(note_coord[0],note_coord[1],CENTER.x+coord.x,CENTER.y+coord.y)
         if collision_result[0]:
           note_cur.remove()
           current_score += collision_result[1]
+        elif current_score > 0 :
+          current_score -= 1 # pbm à ce niveau
 
 
     print(counter, current_score, speed, math.ceil(100-current_score/speed))
