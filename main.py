@@ -1,3 +1,4 @@
+import math
 from math import atan2, degrees
 from time import time
 
@@ -33,6 +34,9 @@ fps = 60
 start_time = (time() - int(time())) * 100
 rotation = 0
 current_score = 0
+speed = 10
+health = 100
+damage = 5
 
 #load other module
 init(fps,(CENTER.x,CENTER.y))
@@ -47,11 +51,14 @@ TEXT_COL = (60, 255, 7,255)
 menu_layer = engine.make_layer((SCREEN_WIDTH, SCREEN_HEIGHT))
 note_layer = engine.make_layer((SCREEN_WIDTH, SCREEN_HEIGHT))
 note_layer2 = engine.make_layer((SCREEN_WIDTH, SCREEN_HEIGHT))
+main_screen_layer = engine.make_layer((SCREEN_WIDTH,SCREEN_HEIGHT))
+shake_layer = engine.make_layer((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 #define Texture
 blank_texture = engine.surface_to_texture(pygame.Surface((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.SRCALPHA))
 perso = engine.load_texture("assets/textures/game/perso.png")
 note = engine.load_texture("assets/textures/game/note.png")
+health_bar = engine.surface_to_texture(pygame.Surface((SCREEN_WIDTH/4, SCREEN_HEIGHT/20), pygame.SRCALPHA))
 
 #define shader
 shader_line = engine.load_shader_from_path('shader/vertex.glsl', 'shader/line.glsl')
@@ -60,6 +67,8 @@ shader_star = engine.load_shader_from_path('shader/vertex.glsl', 'shader/star.gl
 shader_particle = engine.load_shader_from_path('shader/vertex.glsl', 'shader/particle.glsl')
 shader_blend = engine.load_shader_from_path('shader/vertex.glsl', 'shader/blend.glsl')
 clear_black = engine.load_shader_from_path('shader/vertex.glsl', 'shader/clear_black.glsl')
+shader_health_bar = engine.load_shader_from_path('shader/vertex.glsl', 'shader/health.glsl')
+
 
 #load button images
 resume_img = pygame.image.load("assets/textures/GUI/main menu/Jouer.png").convert_alpha()
@@ -71,7 +80,7 @@ shooting_star_img = pygame.image.load('assets/textures/GUI/main menu/shooting_st
 lines_img = pygame.image.load('assets/textures/GUI/lines.png')
 
 #define note object
-Note(note, 100, 100, (0, 255, 0))
+#Note(note, 100, 100, (0, 255, 0))
 
 #load animation
 slash = engine.load_texture("assets/textures/game/slash.png")
@@ -80,6 +89,14 @@ slash = engine.load_texture("assets/textures/game/slash.png")
 fullScreen_img = font.render("Fullscreen", True, TEXT_COL)
 fullScreen_img = pygame.transform.scale(fullScreen_img, (int(fullScreen_img.get_width() * 1.6),
                                                        fullScreen_img.get_height()))
+Game_Over_img = font.render("Game Over", True, TEXT_COL)
+Game_Over_img = pygame.transform.scale(Game_Over_img, (int(Game_Over_img.get_width() * 2),
+                                                       int(Game_Over_img.get_height()*1.5)))
+game_over_text = engine.surface_to_texture(Game_Over_img)
+Score_img = font.render("Score : "+str(current_score), True, TEXT_COL)
+Score_img = pygame.transform.scale(Score_img, (int(Score_img.get_width() * 1.6),
+                                                       Score_img.get_height()))
+score_text = engine.surface_to_texture(Score_img)
 
 #create button instances
 resume_button = button.Button(CENTER.x, SCREEN_HEIGHT/3.2, resume_img, 1.5)
@@ -130,11 +147,23 @@ def draw_game():
   engine.render(note_layer.texture, engine.screen, shader=clear_black)
   Note.draw_all(engine, engine.screen, shader=shader_particle)
   Note.move_to_all( 3)
+  global health
   for note1 in Note.list_notes:
     if note1.get_pos().distance_to(Vector2(CENTER.x, CENTER.y)) < 3:
       note1.remove()
+      health -= damage
   Animation.draw_all(engine, engine.screen)
 
+  # draw health bar
+  shader_health_bar['uv_size'] = health_bar.size
+  shader_health_bar['health'] = health/100
+  engine.render(health_bar, engine.screen, (SCREEN_WIDTH/1.4, SCREEN_HEIGHT/1.12),shader=shader_health_bar)
+
+def draw_texture_center(texture, x, y,layers = None,shader = None):
+  if layers is None:
+    engine.render(texture, engine.screen, (x - texture.width/2, y - texture.height/2),shader=shader)
+  else:
+    engine.render(texture,layers, (x - texture.width/2, y - texture.height/2),shader=shader)
 
 
 def update_layer_size():
@@ -217,10 +246,20 @@ while run:
         change_fullscreen = True
         #engine.render(engine.surface_to_texture(fullScreen_img), menu_layer, (640, 220))
     #engine.render(menu_layer.texture, engine.screen, shader=shader_glitch)
+
+    if menu_state == "game over":
+      draw_texture_center(game_over_text, CENTER.x, 220, menu_layer)
+      draw_texture_center(score_text, CENTER.x, 360, menu_layer)
+      back_button.draw(engine,menu_layer)
+      if back_button.is_clicked():
+        menu_state = "main"
+        current_score = 0
+
   else:
     #the Game is running
 
     draw_game()
+    #check if the player clicked and spawn a slash animation
     if pygame.mouse.get_pressed()[0] and button.Button.can_click :
       button.Button.can_click = False
       current_score += 1
@@ -228,12 +267,25 @@ while run:
       Animation(slash, CENTER.x+coord.x, CENTER.y+coord.y,
                 15, 6, loop = False, scale = 3,rotation=rotation)
 
-    if counter % 100 == 0:
+    print(counter, current_score, speed, math.ceil(100-current_score/speed))
+    if counter % (math.ceil(100-current_score/speed)) == 0:
       rot = random.random() * 360
       vec = Vector2(0, -1000).rotate(rot)
       color = random_color()
       Note(note, vec.x + SCREEN_WIDTH / 2, vec.y + SCREEN_HEIGHT / 2, color)
 
+    if health <= 0:
+      game_paused = True
+      menu_state = "game over"
+      Score_img = font.render("Score : " + str(current_score), True, TEXT_COL)
+      Score_img = pygame.transform.scale(Score_img, (int(Score_img.get_width() * 2),
+                                                     int(Score_img.get_height()*1.5)))
+      score_text = engine.surface_to_texture(Score_img)
+      health = 100
+      Note.list_notes.clear()
+      Animation.List_animations.clear()
+      pygame.mixer.music.stop()
+  #    main_menu_music = True
 
 
   # draw shooting stars

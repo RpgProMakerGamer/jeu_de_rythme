@@ -9,5 +9,6 @@ out vec2 fragmentTexCoord;
 void main()
 {
     gl_Position=vec4(vertexPos,1.);
-    fragmentTexCoord=vertexTexCoord;
+    vec2 test=vertexTexCoord;
+    fragmentTexCoord=test;
 }
