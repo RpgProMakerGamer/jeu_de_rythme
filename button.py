@@ -1,9 +1,16 @@
 import pygame
 from pygame import SurfaceType
+from pygame.mixer import SoundType
 from pygame_render import RenderEngine, Layer
 
-import sprite
+volume = 0.5
+select_sound : SoundType = None
 
+def init(sound,vol):
+    global select_sound
+    global volume
+    volume = vol
+    select_sound = sound
 #button class
 class Button:
 
@@ -30,5 +37,7 @@ class Button:
  def is_clicked(self):
     if self.is_hover() and pygame.mouse.get_pressed()[0] == 1 and Button.can_click:
       Button.can_click = False
+      select_sound.set_volume(volume)
+      select_sound.play()
       return True
     return False

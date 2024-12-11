@@ -37,6 +37,9 @@ current_score = 0
 speed = 10
 health = 100
 damage = 5
+shake =False
+frame_count = 0
+volume = 0.1
 
 #load other module
 init(fps,(CENTER.x,CENTER.y))
@@ -46,6 +49,13 @@ font = pygame.font.Font("assets/textures/fonts/Chomsky.otf", 32)
 
 #define colours
 TEXT_COL = (60, 255, 7,255)
+
+#load sounds
+hurt_sound = pygame.mixer.Sound("assets/sounds/effects/hurt.mp3",)
+explode_sound = pygame.mixer.Sound("assets/sounds/effects/explode.mp3",)
+select_sound = pygame.mixer.Sound("assets/sounds/effects/select.mp3",)
+
+button.init(select_sound,volume)
 
 #define layer
 menu_layer = engine.make_layer((SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -68,6 +78,7 @@ shader_particle = engine.load_shader_from_path('shader/vertex.glsl', 'shader/par
 shader_blend = engine.load_shader_from_path('shader/vertex.glsl', 'shader/blend.glsl')
 clear_black = engine.load_shader_from_path('shader/vertex.glsl', 'shader/clear_black.glsl')
 shader_health_bar = engine.load_shader_from_path('shader/vertex.glsl', 'shader/health.glsl')
+shader_shake = engine.load_shader_from_path('shader/vertex.glsl', 'shader/shake.glsl')
 
 
 #load button images
@@ -136,10 +147,24 @@ def draw_options_menu():
 
 def draw_game():
   global note_layer
+  global shake
+  global frame_count
+  if frame_count > 10:
+    frame_count = 0
+    shake=False
+  main_layer = engine.screen
+  if shake:
+    frame_count += 1
+    shake_layer.clear(0, 0, 0, 0)
+    main_layer = shake_layer
   draw_text("Press SPACE to pause", font, TEXT_COL, SCREEN_WIDTH/55, SCREEN_HEIGHT/55)
   draw_text("Score : "+str(current_score), font, TEXT_COL, SCREEN_WIDTH /1.15, SCREEN_HEIGHT / 55)
-  engine.render(perso, engine.screen, (CENTER.x-perso.width/2*2, CENTER.y-perso.height/2*2),scale=2,
+  engine.render(perso, main_layer, (CENTER.x - perso.width / 2 * 2, CENTER.y - perso.height / 2 * 2), scale=2,
                 angle=rotation)
+  if shake:
+    shader_shake['time'] = pygame.time.get_ticks()
+    engine.render(shake_layer.texture, engine.screen, shader=shader_shake)
+
   Note.draw_all(engine, note_layer, shader=shader_particle)
   engine.render(note_layer.texture, note_layer2, shader=shader_blend)
   engine.render(note_layer2.texture, note_layer)
@@ -147,12 +172,17 @@ def draw_game():
   engine.render(note_layer.texture, engine.screen, shader=clear_black)
   Note.draw_all(engine, engine.screen, shader=shader_particle)
   Note.move_to_all( 3)
+  Animation.draw_all(engine, engine.screen)
   global health
   for note1 in Note.list_notes:
     if note1.get_pos().distance_to(Vector2(CENTER.x, CENTER.y)) < 3:
       note1.remove()
       health -= damage
-  Animation.draw_all(engine, engine.screen)
+      shake = True
+      hurt_sound.set_volume(volume)
+      hurt_sound.play()
+
+
 
   # draw health bar
   shader_health_bar['uv_size'] = health_bar.size
@@ -272,12 +302,14 @@ while run:
         collision_result = collision(note_coord[0],note_coord[1],CENTER.x+coord.x,CENTER.y+coord.y)
         if collision_result[0]:
           note_cur.remove()
+          explode_sound.set_volume(volume)
+          explode_sound.play()
           current_score += collision_result[1]
         elif current_score > 0 :
           current_score -= 1 # pbm à ce niveau
 
 
-    print(counter, current_score, speed, math.ceil(100-current_score/speed))
+    #print(counter, current_score, speed, math.ceil(100-current_score/speed))
     if counter % (math.ceil(100-current_score/speed)) == 0:
       rot = random.random() * 360
       vec = Vector2(0, -1000).rotate(rot)
@@ -295,6 +327,8 @@ while run:
       Note.list_notes.clear()
       Animation.List_animations.clear()
       pygame.mixer.music.stop()
+      note_layer2.clear(0, 0, 0, 0)
+      note_layer.clear(0, 0, 0, 0)
   #    main_menu_music = True
 
 
