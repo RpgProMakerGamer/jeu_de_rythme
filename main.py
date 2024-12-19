@@ -6,7 +6,7 @@ import pygame
 from pygame import Vector2
 from pygame.font import FontType
 
-from note import Note,Animation,collision,init
+from note import Note,Animation,init
 
 import button
 import sprite
@@ -26,6 +26,7 @@ pygame.display.set_caption("Jeu de rythm")
 clock = pygame.time.Clock()
 
 #global game variables
+high_score = 0
 game_paused = True
 menu_state = "main"
 main_menu_music = False
@@ -35,14 +36,22 @@ start_time = (time() - int(time())) * 100
 rotation = 0
 current_score = 0
 speed = 10
-health = 100
+health = 1
 damage = 5
 shake =False
 frame_count = 0
 volume = 0.1
 
+try:
+  with open('save.super_cripte', 'r') as f :
+    a = int(f.readline()[::-1], 2)/-23-50
+    if a-int(a) != 0:
+      menu_state = "cheat"
+except FileNotFoundError:
+  print("No save file found")
+
 #load other module
-init(fps,(CENTER.x,CENTER.y))
+init(fps,(CENTER.x,CENTER.y),engine)
 
 #define fonts
 font = pygame.font.Font("assets/textures/fonts/Chomsky.otf", 32)
@@ -109,6 +118,10 @@ Score_img = pygame.transform.scale(Score_img, (int(Score_img.get_width() * 1.6),
                                                        Score_img.get_height()))
 score_text = engine.surface_to_texture(Score_img)
 
+high_score_img =None
+high_score_text = None
+
+
 #create button instances
 resume_button = button.Button(CENTER.x, SCREEN_HEIGHT/3.2, resume_img, 1.5)
 options_button = button.Button(CENTER.x, CENTER.y, options_img, 1.5)
@@ -131,25 +144,43 @@ def random_color() -> tuple[int,int,int]:
   levels = range(128, 256, 32)
   return tuple(random.choice(levels) for _ in range(3))
 
+def update_high_score():
+  global high_score, high_score_img, high_score_text
+  high_score_img = font.render("High Score : " + str(high_score), True, TEXT_COL)
+  high_score_img = pygame.transform.scale(high_score_img, (int(Score_img.get_width() * 1.3),
+                                                           int(Score_img.get_height() * 0.85)))
+  high_score_img = pygame.transform.rotate(high_score_img, -25)
+  high_score_text = engine.surface_to_texture(high_score_img)
+
+update_high_score()
+
 def draw_text(message, font : FontType, text_col:tuple[int,int,int,int], x, y):
   img = font.render(message, True, text_col)
-  engine.render(engine.surface_to_texture(img), engine.screen, (x, y))
+  engine.render(engine.surface_to_texture(img), engine.screen, (x-img.get_width()/2, y-img.get_height()/2))
 
 def draw_main_menu():
   resume_button.draw(engine,menu_layer)
   options_button.draw(engine,menu_layer)
   quit_button.draw(engine,menu_layer)
+  if high_score > 0:
+    draw_texture_center(high_score_text, SCREEN_WIDTH/1.2, SCREEN_HEIGHT/8, menu_layer)
+
 
 def draw_options_menu():
   audio_button.draw(engine,menu_layer)
   full_button.draw(engine,menu_layer)
   back_button.draw(engine,menu_layer)
 
+def draw_game_over():
+  draw_texture_center(game_over_text, CENTER.x, 240, menu_layer)
+  draw_texture_center(score_text, CENTER.x, 360, menu_layer)
+  back_button.draw(engine, menu_layer)
+
 def draw_game():
   global note_layer
   global shake
   global frame_count
-  if frame_count > 10:
+  if frame_count > 15:
     frame_count = 0
     shake=False
   main_layer = engine.screen
@@ -157,12 +188,12 @@ def draw_game():
     frame_count += 1
     shake_layer.clear(0, 0, 0, 0)
     main_layer = shake_layer
-  draw_text("Press SPACE to pause", font, TEXT_COL, SCREEN_WIDTH/55, SCREEN_HEIGHT/55)
-  draw_text("Score : "+str(current_score), font, TEXT_COL, SCREEN_WIDTH /1.15, SCREEN_HEIGHT / 55)
+  draw_text("Press SPACE to pause", font, TEXT_COL, SCREEN_WIDTH/8, SCREEN_HEIGHT/25)
+  draw_text("Score : "+str(current_score), font, TEXT_COL, SCREEN_WIDTH /1.15, SCREEN_HEIGHT / 25)
   engine.render(perso, main_layer, (CENTER.x - perso.width / 2 * 2, CENTER.y - perso.height / 2 * 2), scale=2,
                 angle=rotation)
   if shake:
-    shader_shake['time'] = pygame.time.get_ticks()
+    shader_shake['time'] = pygame.time.get_ticks()/100
     engine.render(shake_layer.texture, engine.screen, shader=shader_shake)
 
   Note.draw_all(engine, note_layer, shader=shader_particle)
@@ -278,12 +309,14 @@ while run:
     #engine.render(menu_layer.texture, engine.screen, shader=shader_glitch)
 
     if menu_state == "game over":
-      draw_texture_center(game_over_text, CENTER.x, 220, menu_layer)
-      draw_texture_center(score_text, CENTER.x, 360, menu_layer)
-      back_button.draw(engine,menu_layer)
+      draw_game_over()
       if back_button.is_clicked():
         menu_state = "main"
         current_score = 0
+
+    if menu_state == "cheat":
+      draw_text("Cheat detected", pygame.font.Font("assets/textures/fonts/Chomsky.otf", 64), TEXT_COL,
+                SCREEN_WIDTH/2, SCREEN_HEIGHT/2)
 
   else:
     #the Game is running
@@ -294,19 +327,21 @@ while run:
       button.Button.can_click = False
       # current_score += 1
       coord = Vector2(0, -65).rotate(rotation)
-      Animation(slash, CENTER.x+coord.x, CENTER.y+coord.y,
+      anim = Animation(slash, CENTER.x+coord.x, CENTER.y+coord.y,
                 15, 6, loop = False, scale = 3,rotation=rotation)
-      for note_cur in Note.list_notes:
-        note_coord = note_cur.get_pos()
-        # print([note_coord[0],note_coord[1],CENTER.x+coord.x,CENTER.y+coord.y])
-        collision_result = collision(note_coord[0],note_coord[1],CENTER.x+coord.x,CENTER.y+coord.y)
-        if collision_result[0]:
-          note_cur.remove()
-          explode_sound.set_volume(volume)
-          explode_sound.play()
+      if len(anim.collision()) == 0 and current_score > 0:
+        current_score -= 1
+
+    for animation in Animation.List_animations:
+      # print([note_coord[0],note_coord[1],CENTER.x+coord.x,CENTER.y+coord.y])
+      colision_list: list[(Note, int)] = animation.collision()
+      if len(colision_list) != 0:
+        for collision_result in colision_list:
+          collision_result[0].remove()
           current_score += collision_result[1]
-        elif current_score > 0 :
-          current_score -= 1 # pbm à ce niveau
+        explode_sound.set_volume(volume)
+        explode_sound.play()
+
 
 
     #print(counter, current_score, speed, math.ceil(100-current_score/speed))
@@ -319,16 +354,29 @@ while run:
     if health <= 0:
       game_paused = True
       menu_state = "game over"
+
+
+      high_score = max(high_score, current_score)
+
+      #update the end screen Score
       Score_img = font.render("Score : " + str(current_score), True, TEXT_COL)
       Score_img = pygame.transform.scale(Score_img, (int(Score_img.get_width() * 2),
                                                      int(Score_img.get_height()*1.5)))
       score_text = engine.surface_to_texture(Score_img)
+
+      #update the High Score image
+      update_high_score()
+
       health = 100
       Note.list_notes.clear()
       Animation.List_animations.clear()
       pygame.mixer.music.stop()
       note_layer2.clear(0, 0, 0, 0)
       note_layer.clear(0, 0, 0, 0)
+
+      frame_count = 0
+      shake = False
+
   #    main_menu_music = True
 
 
@@ -385,4 +433,7 @@ while run:
     f'Rendering 1 sprites at {mspt:.3f} ms per tick!')
 
   counter += 1
+
+with open('save.super_cripte', 'w') as f:
+  f.write(f'{(high_score+50)*-23:b}'[::-1])
 pygame.quit()

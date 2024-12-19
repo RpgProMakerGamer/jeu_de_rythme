@@ -6,11 +6,20 @@ from pygame import Vector2
 from pygame_render import RenderEngine, Layer, Shader
 
 Center = (0,0)
+red_circle : Texture = pygame.Surface((4, 4), pygame.SRCALPHA)
+pygame.draw.circle(red_circle, (255, 0, 0), (2, 2), 2)
 
-def init(fps1,center):
+
+def init(fps1,center,eng):
   Animation.FPS = fps1
   global Center
+  global red_circle
   Center = center
+  engine = eng
+  red_circle = engine.surface_to_texture(red_circle)
+
+
+
 
 class Note:
 
@@ -60,7 +69,7 @@ class Note:
       pass
 
 
-  def draw(self, engine:RenderEngine, layer:Layer = None, shader: Shader = None):
+  def draw(self,engine : RenderEngine , layer:Layer = None, shader: Shader = None):
     if shader is not None:
       shader['pixel_color'] = (self.color[0]/255,self.color[1]/255,self.color[2]/255)
     if layer is None:
@@ -69,8 +78,9 @@ class Note:
     else :
       engine.render(self.texture, layer, (self.x-self.texture.width/2, self.y-self.texture.height/2),
                     shader=shader,angle=self.rotation)
+    #engine.render(red_circle, engine.screen, (self.x-self.texture.width/2, self.y-self.texture.height/2))
 
-  def draw_all(engine :RenderEngine, layer:Layer = None, shader: Shader = None):
+  def draw_all(engine : RenderEngine, layer:Layer = None, shader: Shader = None):
     for note in Note.list_notes:
       note.draw(engine,layer,shader)
 
@@ -81,6 +91,14 @@ class Note:
     else :
       for note in Note.list_notes:
         note.move_to(dist)
+
+  def collision(self,cursor_x,cursor_y):
+      r = 16 #/!\ ←— mettre la moitié de la longueur du côté de la note (height//2)
+      d = (cursor_x - self.x)**2 + (cursor_y - self.y)**2
+      if d < r**2:
+          score = int(r - d ** 0.5)
+          return True,int(score/3)+5
+      return False,None
 
 class Animation:
   FPS= 60
@@ -130,7 +148,7 @@ class Animation:
     for anim in Animation.List_animations:
       anim.draw(engine,layer,shader)
 
-  def draw(self, engine:RenderEngine, layer:Layer = None, shader: Shader = None,rotation : float = 0):
+  def draw(self, engine:RenderEngine, layer:Layer = None, shader: Shader = None):
     if self.current_frame >= self.max_frame-1 :
       if self.loop :
         self.current_frame = 0
@@ -152,11 +170,13 @@ class Animation:
                     shader=shader,section=pygame.Rect(
         self.current_frame*self.width,0,self.width,self.textures.height),scale=self.scale,angle=self.rotation)
     self.frame_counter += 1
+    #engine.render(red_circle, engine.screen, (self.x-(self.textures.height/2), self.y-(self.width/2)))
 
-def collision(note_x,note_y,cursor_x,cursor_y):
-    r = 15 #/!\ <=== mettre la moitié de la longueur du côté de la note (height//2)
-    d = (cursor_x - note_x)**2 + (cursor_y - note_y)**2
-    if d < r**2:
-        score = int(round(r-(d)**0.5,1)*1)
-        return (True,score)
-    return (False,None)
+  def collision(self):
+    liste = []
+    for note in Note.list_notes:
+      collide,score = note.collision(self.x,self.y)
+      if collide:
+        liste.append((note,score))
+    return liste
+

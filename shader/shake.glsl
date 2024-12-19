@@ -4,7 +4,7 @@ in vec2 fragmentTexCoord;
 out vec4 color;
 
 uniform sampler2D imageTexture;
-uniform float ShakeStrength = 0.3;
+uniform float ShakeStrength = 0.4;
 uniform float time;
 uniform vec2 FactorA  = vec2(100.0,100.0);
 uniform vec2 FactorB  = vec2(1.0,1.0);
@@ -20,4 +20,5 @@ void main() {
 	dt.x = sin(time * FactorA.x+FactorB.x) * magnitude.x;
 	dt.y = cos(time *FactorA.y+ FactorB.y) * magnitude.y;
 	color = texture(imageTexture, uv + (dt*ShakeStrength));
+    color.r += color.a;
 }
