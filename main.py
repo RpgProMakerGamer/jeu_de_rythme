@@ -9,7 +9,6 @@ from pygame.font import FontType
 from note import Note,Animation,init
 
 import button
-import sprite
 import random
 from pygame_render import RenderEngine
 
@@ -26,27 +25,31 @@ pygame.display.set_caption("Jeu de rythm")
 clock = pygame.time.Clock()
 
 #global game variables
+debug = False
 high_score = 0
 game_paused = True
 menu_state = "main"
-main_menu_music = False
+main_menu_music = True
 afficher_shooting_stars = False
 fps = 60
 start_time = (time() - int(time())) * 100
 rotation = 0
 current_score = 0
 speed = 10
-health = 1
+max_health = 50
+health = max_health
 damage = 5
-shake =False
+shake = False
 frame_count = 0
-volume = 0.1
+volume = 0.025
 
 try:
   with open('save.super_cripte', 'r') as f :
     a = int(f.readline()[::-1], 2)/-23-50
     if a-int(a) != 0:
       menu_state = "cheat"
+    print(a)
+    high_score = int(a)
 except FileNotFoundError:
   print("No save file found")
 
@@ -118,7 +121,6 @@ Score_img = pygame.transform.scale(Score_img, (int(Score_img.get_width() * 1.6),
                                                        Score_img.get_height()))
 score_text = engine.surface_to_texture(Score_img)
 
-high_score_img =None
 high_score_text = None
 
 
@@ -131,24 +133,15 @@ full_button = button.Button(CENTER.x, CENTER.y, fullScreen_img, 1.5)
 back_button = button.Button(CENTER.x, SCREEN_HEIGHT/1.42, back_img, 1.5)
 
 
-
-# create sprite instances
-if afficher_shooting_stars:
-  shooting_star_sprt0 = sprite.Sprite(random.randrange(40,1280), 0, shooting_star_img, random.randrange(50,256), engine)
-  shooting_star_sprt1 = sprite.Sprite(random.randrange(40,1280), 0, shooting_star_img, random.randrange(50,256), engine)
-  shooting_star_sprt2 = sprite.Sprite(1280, random.randrange(700), shooting_star_img, random.randrange(50,256), engine)
-  shooting_star_sprt3 = sprite.Sprite(1280, random.randrange(700), shooting_star_img, random.randrange(50,256), engine)
-
-
 def random_color() -> tuple[int,int,int]:
   levels = range(128, 256, 32)
   return tuple(random.choice(levels) for _ in range(3))
 
 def update_high_score():
-  global high_score, high_score_img, high_score_text
+  global high_score, high_score_text
   high_score_img = font.render("High Score : " + str(high_score), True, TEXT_COL)
-  high_score_img = pygame.transform.scale(high_score_img, (int(Score_img.get_width() * 1.3),
-                                                           int(Score_img.get_height() * 0.85)))
+  high_score_img = pygame.transform.scale(high_score_img, (int(high_score_img.get_width() * 1.6),
+                                                           high_score_img.get_height()))
   high_score_img = pygame.transform.rotate(high_score_img, -25)
   high_score_text = engine.surface_to_texture(high_score_img)
 
@@ -163,7 +156,7 @@ def draw_main_menu():
   options_button.draw(engine,menu_layer)
   quit_button.draw(engine,menu_layer)
   if high_score > 0:
-    draw_texture_center(high_score_text, SCREEN_WIDTH/1.2, SCREEN_HEIGHT/8, menu_layer)
+    draw_texture_center(high_score_text, SCREEN_WIDTH/1.2, SCREEN_HEIGHT/3, menu_layer)
 
 
 def draw_options_menu():
@@ -217,7 +210,7 @@ def draw_game():
 
   # draw health bar
   shader_health_bar['uv_size'] = health_bar.size
-  shader_health_bar['health'] = health/100
+  shader_health_bar['health'] = health/max_health
   engine.render(health_bar, engine.screen, (SCREEN_WIDTH/1.4, SCREEN_HEIGHT/1.12),shader=shader_health_bar)
 
 def draw_texture_center(texture, x, y,layers = None,shader = None):
@@ -231,8 +224,15 @@ def update_layer_size():
   global menu_layer
   menu_layer = engine.make_layer((SCREEN_WIDTH, SCREEN_HEIGHT))
 
+
 note_layer.clear(0, 0, 0, 0)
 note_layer2.clear(0, 0, 0, 0)
+
+pygame.mixer.music.load("assets/sounds/musics/main_menu.mp3")
+pygame.mixer.music.set_volume(volume)
+
+if main_menu_music:
+  pygame.mixer.music.play(1000000)
 
 change_fullscreen = False
 counter = 0
@@ -269,14 +269,7 @@ while run:
 
 
 
-  # main menu music player
-  if main_menu_music:
-    main_menu_music = False
-    pygame.mixer.music.load("assets/sounds/musics/main_menu.mp3")
-    pygame.mixer.music.set_volume(0.025)
-    pygame.mixer.music.play()
-
-  #background
+    #background
   engine.render(blank_texture, engine.screen, shader=shader_star)
 
 
@@ -299,7 +292,12 @@ while run:
       draw_options_menu()
       #draw the different options buttons
       if audio_button.is_clicked():
-        print("Audio Settings")
+        #stop the music
+        if main_menu_music:
+          pygame.mixer.music.stop()
+        else:
+          pygame.mixer.music.play(1000000)
+        main_menu_music = not main_menu_music
       if back_button.is_clicked():
         menu_state = "main"
       if full_button.is_clicked():
@@ -354,8 +352,6 @@ while run:
     if health <= 0:
       game_paused = True
       menu_state = "game over"
-
-
       high_score = max(high_score, current_score)
 
       #update the end screen Score
@@ -370,7 +366,6 @@ while run:
       health = 100
       Note.list_notes.clear()
       Animation.List_animations.clear()
-      pygame.mixer.music.stop()
       note_layer2.clear(0, 0, 0, 0)
       note_layer.clear(0, 0, 0, 0)
 
@@ -378,21 +373,6 @@ while run:
       shake = False
 
   #    main_menu_music = True
-
-
-  # draw shooting stars
-  # /!\ problème avec l'opacité /!\
-  if afficher_shooting_stars:
-    for i in range(4):
-      if locals()[f'shooting_star_sprt{i}'].x>-250 or locals()[f'shooting_star_sprt{i}'].y<720:
-        locals()[f"shooting_star_sprt{i}"] = sprite.Sprite(locals()[f'shooting_star_sprt{i}'].x - 1.5, locals()[f'shooting_star_sprt{i}'].y + 1, shooting_star_img, 255, engine)
-      else :
-        if i < 2:
-          locals()[f"shooting_star_sprt{i}"] = sprite.Sprite(random.randrange(40,1280), 0, shooting_star_img, random.randrange(50,256), engine)
-          print(locals()[f"shooting_star_sprt{i}"].opacity)
-        else :
-          locals()[f"shooting_star_sprt{i}"] = sprite.Sprite(1280, random.randrange(700), shooting_star_img, random.randrange(50,256), engine)
-          print(locals()[f"shooting_star_sprt{i}"].opacity)
 
   #event handler
   for event in pygame.event.get():
@@ -428,9 +408,9 @@ while run:
   start_time += (t - t0)
 
   mspt = (t - t0) * 1000
-
-  pygame.display.set_caption(
-    f'Rendering 1 sprites at {mspt:.3f} ms per tick!')
+  if debug:
+    pygame.display.set_caption(
+      f'Rendering 1 sprites at {mspt:.3f} ms per tick!')
 
   counter += 1
 
